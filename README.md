@@ -13,9 +13,7 @@ You can check out the other options available to use with *defining_identifying_
   
 #### Input
 The supported input format is an edgelist:
-
-	node1_id_int node2_id_int <weight_float, optional>
-		
+	``node1_id_int node2_id_int <weight_float, optional>``		
 The graph is assumed to be undirected and unweighted by default.
 
 #### Output
