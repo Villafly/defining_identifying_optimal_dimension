@@ -1,21 +1,10 @@
-'''
-Reference implementation of node2vec. 
-
-Author: Aditya Grover, modified by Weiwei Gu
-
-For more details, refer to the paper:
-node2vec: Scalable Feature Learning for Networks
-Aditya Grover and Jure Leskovec 
-Knowledge Discovery and Data Mining (KDD), 2016
-'''
-
 import numpy as np
 import networkx as nx
 import node2vec
 from gensim.models import Word2Vec
 from scipy.spatial.distance import cdist
 import cPickle as pkl
-#from define_identify import *
+from sklearn import preprocessing
 
 def read_graph(args):
     '''
@@ -38,17 +27,10 @@ def cal_cosine_matrices(G,walks,args):
     '''
     norm_loss = []
     walks = [map(str, walk) for walk in walks]
-    embedding_dims = range(args.start_dim,args.end_dim,args.step)
     node_num = len(G.nodes())
-#    #temp test
-#    adj_list = np.asarray(nx.to_numpy_matrix(G))
-#      
-#    for i in range(len(G.nodes())):
-#          for j in range(i,len(G.nodes())):
-#            #print adj_list[i,j],adj_list[j,i],
-#            if adj_list[i,j] != adj_list[j,i] or adj_list[i,i] == 1:              
-#              print 'error',
-#    # temp done
+    if node_num < args.end_dim:
+      args.end_dim = node_num 
+    embedding_dims = range(args.start_dim,args.end_dim,args.step)
     if node_num < 500:
       embedding_dims.insert(0,node_num)
     else:
@@ -58,8 +40,8 @@ def cal_cosine_matrices(G,walks,args):
       model = Word2Vec(walks, size=dim,window=args.window_size, min_count=0, sg=1, workers=args.workers, iter=args.iter)    
       emb_matrix = np.zeros((node_num,dim))      
       for _cnt,node in enumerate(G.nodes()):
-        emb_matrix[_cnt,:] = model[str(node)]
-      cosine_matrix = cdist(emb_matrix,emb_matrix,'cosine')
+        emb_matrix[_cnt,:] = model[str(node)] 
+      cosine_matrix = 1 - cdist(emb_matrix,emb_matrix,'cosine')
       if _index == 0:
         benchmark_matrix = cosine_matrix
         benchmark_array = np.array(upper_tri_masking(benchmark_matrix))
