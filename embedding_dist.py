@@ -41,6 +41,7 @@ def cal_cosine_matrices(G,walks,args):
       emb_matrix = np.zeros((node_num,dim))      
       for _cnt,node in enumerate(G.nodes()):
         emb_matrix[_cnt,:] = model[str(node)] 
+      emb_matrix = emb_matrix - np.mean(emb_matrix,axis=0) 
       cosine_matrix = 1 - cdist(emb_matrix,emb_matrix,'cosine')
       if _index == 0:
         benchmark_matrix = cosine_matrix
