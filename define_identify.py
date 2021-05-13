@@ -1,7 +1,6 @@
 import numpy as np
 import pandas as pd
 from scipy import optimize
-import math
 import argparse
 import os
 import cPickle as pickle
@@ -32,20 +31,20 @@ def parse_args(graph_name):
     parser.add_argument('--start_dim', type=int, default= 2,
                         help='the start embedding dimension. Default is 2.')
                                            
-    parser.add_argument('--end_dim', type=int, default= 150,
+    parser.add_argument('--end_dim', type=int, default= 100,
                         help='the end embedding dimension. Default is 150.')
                                            
-    parser.add_argument('--step', type=int, default= 2,
-                        help='the step dimension from start_dim to end_dim. Default is 5.')                                        
+    parser.add_argument('--step', type=int, default= 4,
+                        help='the step dimension from start_dim to end_dim. Default is 2.')                                        
      
     parser.add_argument('--length', type=int, default= 10,
-                        help='Length of walk per source. Default is 80.')    
+                        help='Length of walk per source. Default is 10.')    
  
     parser.add_argument('--num-walks', type=int, default=20,
-                        help='Number of walks per source. Default is 10.')
+                        help='Number of walks per source. Default is 20.')
     
     parser.add_argument('--window_size', type=int, default=5,
-                      	help='Context size for optimization. Default is 10.')
+                      	help='Context size for optimization. Default is 5.')
     
     parser.add_argument('--iter', default=10, type=int,
                         help='Number of epochs in SGD')
@@ -74,47 +73,9 @@ def parse_args(graph_name):
     return parser.parse_args()
  
 
-    
-def fitting_func(dims,s,L):  
-  return s/dims + L
- 
-def define_loss(cosine_matrices):
-    '''
-    Compute the normalized embedding loss of different embeddings. 
-    '''
-    benchmark_matrix = cosine_matrices[-1,:,:]
-    benchmark_array = np.array(upper_tri_masking(benchmark_matrix))
-    norm_loss = []
-    for dim_matrix in cosine_matrices[:-1,:,:]: 
-      dim_array = np.array(upper_tri_masking(dim_matrix)) 
-      loss = np.linalg.norm((dim_array-benchmark_array),ord=1)
-      norm_loss.append(loss/len(dim_array))
-    return norm_loss  
-  
-def identify_optimal_dim(loss,args):
-    '''
-    Identify the optimal dimension range and compute the curve fitting parameter for graph.
-    '''
-    dims = range(args.start_dim,args.end_dim,args.step)
-    paras,cov = optimize.curve_fit(fitting_func, dims,loss)
-    fit_values = (fitting_func(np.array(dims),paras[0],paras[1]))
-    MSE = ((np.array(loss)-np.array(fit_values))**2).mean()
-    print 'the optimal dimension at 0.05 accuracy level is {}'.format(paras[0]/0.05)
-    print 'the MSE of curve fitting is {}'.format(MSE)
-
-#    f1 = open('./pic/conect_data/pkl/{}.pkl'.format(str.split(args.input,'/')[-1]),'wb')
-#    pickle.dump(loss,f1)
-#    f1.close()
-#    plt.scatter(dims,loss) 
-#    plt.plot(dims,fit_values,c='r')
-#    plt.title('{}'.format(str.split(args.input,'/')[3][4:]))
-#    plt.savefig('./pic/conect_data/pic/{}.png'.format(str.split(args.input,'/')[-1]),format='png')
-#    plt.close()
-#    #plt.show()
    
 
 if __name__ == "__main__":
  
       args = parse_args('football')
       norm_loss = cal_embedding_distance(args)    
-      identify_optimal_dim(norm_loss,args)
