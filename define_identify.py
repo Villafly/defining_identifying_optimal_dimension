@@ -22,7 +22,7 @@ def parse_args(graph_name):
 #    parser.add_argument('--input', nargs='?', default='./pic/conect_data/graphs/{}'.format(graph_name),
 #                        help='Input graph path')
                         
-    parser.add_argument('--input', nargs='?', default='./graph/{}'.format(graph_name),
+    parser.add_argument('--input', nargs='?', default='./{}'.format(graph_name),
                         help='Input graph path')
     
     parser.add_argument('--output', nargs='?', default='./emb',
