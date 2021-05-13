@@ -3,8 +3,11 @@ import networkx as nx
 import node2vec
 from gensim.models import Word2Vec
 from scipy.spatial.distance import cdist
-import cPickle as pkl
-from sklearn import preprocessing
+from scipy import optimize
+import math
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
 
 def read_graph(args):
     '''
@@ -20,6 +23,20 @@ def read_graph(args):
     if not args.directed:
         G = G.to_undirected()
     return G
+    
+def fitting_func(dims,s,a,L):  
+  return s/np.power(dims,a) + L
+  
+def identify_optimal_dim(embedding_dims, loss):
+    '''
+    Identify the optimal dimension range and compute the curve fitting parameter for graph.
+    '''  
+    (s,a,l),cov = optimize.curve_fit(fitting_func, embedding_dims,loss)
+    fit_values = (fitting_func(np.array(embedding_dims),s,a,l))
+    MSE = ((np.array(loss)-np.array(fit_values))**2).mean()
+    opt = np.power((s/0.05),1/a)
+    print 'the optimal dimension at 0.05 accuracy level is {}'.format(int(math.ceil(opt)))
+    print 'the MSE of curve fitting is {}'.format(MSE)
 
 def cal_cosine_matrices(G,walks,args):
     '''
@@ -33,10 +50,12 @@ def cal_cosine_matrices(G,walks,args):
     embedding_dims = range(args.start_dim,args.end_dim,args.step)
     if node_num < 500:
       embedding_dims.insert(0,node_num)
+      print 'graph size smaller than the default end dimension, thus has been automatically set to {}'.format(node_num)
     else:
       embedding_dims.insert(0,500)  
     #cosine_matrices = np.zeros((len(embedding_dims),node_num,node_num)) 
     for _index, dim in enumerate(embedding_dims):
+      #print (dim)
       model = Word2Vec(walks, size=dim,window=args.window_size, min_count=0, sg=1, workers=args.workers, iter=args.iter)    
       emb_matrix = np.zeros((node_num,dim))      
       for _cnt,node in enumerate(G.nodes()):
@@ -44,14 +63,13 @@ def cal_cosine_matrices(G,walks,args):
       emb_matrix = emb_matrix - np.mean(emb_matrix,axis=0) 
       cosine_matrix = 1 - cdist(emb_matrix,emb_matrix,'cosine')
       if _index == 0:
-        benchmark_matrix = cosine_matrix
-        benchmark_array = np.array(upper_tri_masking(benchmark_matrix))
+        benchmark_array = np.array(upper_tri_masking(cosine_matrix))
         #np.savez_compressed('./pic/conect_data/npz/{}'.format(str.split(args.input,'/')[6]),benchmark_array)      
       else:
         dim_array = np.array(upper_tri_masking(cosine_matrix)) 
         loss = np.linalg.norm((dim_array-benchmark_array),ord=1)
         norm_loss.append(loss/len(dim_array))
-    return norm_loss
+    return embedding_dims[1:],norm_loss
     
 def upper_tri_masking(A):
     '''
@@ -70,7 +88,10 @@ def cal_embedding_distance(args):
     G = node2vec.Graph(nx_G, args.directed, args.p, args.q)
     G.preprocess_transition_probs()
     walks = G.simulate_walks(args.num_walks, args.length)
-    cosine_matrices = cal_cosine_matrices(nx_G,walks,args)
-    return cosine_matrices
+    dims, loss = cal_cosine_matrices(nx_G,walks,args)
+    plt.plot(dims,loss)
+    plt.savefig('./a.png')
+    identify_optimal_dim(dims, loss)
+    #return cosine_matrices
 
 
